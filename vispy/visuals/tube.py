@@ -48,15 +48,52 @@ class TubeVisual(MeshVisual):
 
     """
 
-    def __init__(self, points, radius=1.0,
+    def __init__(self, points=None,
+                 radius=1.0,
                  closed=False,
                  color='purple',
                  tube_points=8,
                  shading='smooth',
                  vertex_colors=None,
                  face_colors=None,
-                 mode='triangles'):
-
+                 mode='triangles',
+                 **kwargs):
+        self.radius = radius
+        self.face_colors = face_colors
+        if points is not None:
+            vertices, indices, vertex_colors = self._make_vertices(
+                points, radius, closed, color, tube_points, vertex_colors
+            )
+            MeshVisual.__init__(
+                self,
+                vertices,
+                indices,
+                vertex_colors=vertex_colors,
+                face_colors=face_colors,
+                color=color,
+                shading=shading,
+                mode=mode,
+                **kwargs
+            )
+        else:
+            MeshVisual.__init__(
+                self,
+                face_colors=face_colors,
+                color=color,
+                shading=shading,
+                mode=mode,
+                **kwargs
+            )
+        
+    def _make_vertices(
+        self,
+        points,
+        radius=1.0,
+        closed=False,
+        color='purple',
+        tube_points=8,
+        vertex_colors=None,
+    ):
         # make sure we are working with floats
         points = np.array(points).astype(float)
 
@@ -110,12 +147,33 @@ class TubeVisual(MeshVisual):
             vertex_colors = np.repeat(point_colors, tube_points, axis=0)
 
         indices = np.array(indices, dtype=np.uint32)
-
-        MeshVisual.__init__(self, vertices, indices,
-                            vertex_colors=vertex_colors,
-                            face_colors=face_colors,
-                            shading=shading,
-                            mode=mode)
+        return vertices, indices, vertex_colors
+    
+    def set_data(
+        self,
+        points,
+        radius=None,
+        closed=False,
+        color=None,
+        tube_points=8,
+        vertex_colors=None,
+    ):
+        radius = self.radius if radius is None else radius
+        self.radius = radius
+        color = self.color if color is None else color
+        self.color = color
+        vertices, indices, vertex_colors = self._make_vertices(
+            points, radius, closed, color, tube_points, vertex_colors
+        )
+        # Naming is a bit confusing here.
+        MeshVisual.set_data(
+            self,
+            vertices=vertices,
+            faces=indices,
+            vertex_colors=vertex_colors,
+            face_colors=self.face_colors,
+            color=color,
+        )
 
 
 def _frenet_frames(points, closed):
